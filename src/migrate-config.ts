@@ -43,7 +43,8 @@ function transformConfig(config: ClaudeConfig): { config: ClaudeConfig; changes:
     
     // Pattern 1: cmd /c npx
     if (serverConfig.command === 'cmd' && serverConfig.args?.[0] === '/c' && serverConfig.args?.[1] === 'npx') {
-      const npxArgs = serverConfig.args.slice(2);
+      // Filter out existing -y flags to avoid duplication
+      const npxArgs = serverConfig.args.slice(2).filter(arg => arg !== '-y');
       serverConfig.command = 'npx';
       serverConfig.args = [
         '-y',

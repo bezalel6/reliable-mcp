@@ -132,8 +132,10 @@ class MCPServerMigrator {
         const commandArgs = server.args.slice(cIndex + 1);
         
         if (commandArgs[0] === 'npx') {
+          // Filter out existing -y flags to avoid duplication
+          const npxArgs = commandArgs.slice(1).filter(arg => arg !== '-y');
           newServer.command = 'npx';
-          newServer.args = ['-y', 'reliable-mcp', '--label', name, '--', 'npx', '-y', ...commandArgs.slice(1)];
+          newServer.args = ['-y', 'reliable-mcp', '--label', name, '--', 'npx', '-y', ...npxArgs];
           changed = true;
           description = `Converted cmd /c npx to reliable-mcp wrapper`;
         } else {
