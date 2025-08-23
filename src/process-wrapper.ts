@@ -51,14 +51,37 @@ export class ProcessWrapper {
     this.log(`Starting process: ${this.options.command} ${(this.options.args || []).join(' ')}`, 'debug');
 
     // Spawn the child process
-    this.child = spawn(this.options.command, this.options.args || [], {
-      cwd: this.options.cwd,
-      env: { ...process.env, ...this.options.env },
-      windowsHide: this.options.windowsHide !== false,
-      detached: this.isWindows ? false : this.options.detached || false,
-      shell: this.options.shell,
-      stdio: ['inherit', 'inherit', 'inherit'],
-    });
+    // When using shell on Windows, combine command and args into a single string
+    // to avoid the DEP0190 deprecation warning
+    if (this.options.shell && this.isWindows) {
+      const fullCommand = [this.options.command, ...(this.options.args || [])]
+        .map(arg => {
+          // Quote arguments containing spaces
+          if (arg.includes(' ') && !arg.startsWith('"')) {
+            return `"${arg}"`;
+          }
+          return arg;
+        })
+        .join(' ');
+      
+      this.child = spawn(fullCommand, [], {
+        cwd: this.options.cwd,
+        env: { ...process.env, ...this.options.env },
+        windowsHide: this.options.windowsHide !== false,
+        detached: false,
+        shell: this.options.shell,
+        stdio: ['inherit', 'inherit', 'inherit'],
+      });
+    } else {
+      this.child = spawn(this.options.command, this.options.args || [], {
+        cwd: this.options.cwd,
+        env: { ...process.env, ...this.options.env },
+        windowsHide: this.options.windowsHide !== false,
+        detached: this.isWindows ? false : this.options.detached || false,
+        shell: this.options.shell,
+        stdio: ['inherit', 'inherit', 'inherit'],
+      });
+    }
 
     this.child.on('error', (error) => {
       this.log(`Process error: ${error.message}`, 'error');

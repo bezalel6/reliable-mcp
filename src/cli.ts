@@ -9,7 +9,7 @@ import * as path from 'path';
 const isWindows = os.platform() === 'win32';
 
 // Check if this is a subcommand
-const subcommands = ['cleanup', 'list', 'migrate', 'migrate-all', 'help', '--help', '-h', '--version', '-V'];
+const subcommands = ['cleanup', 'list', 'migrate', 'migrate-all', 'restore', 'restore-all', 'help', '--help', '-h', '--version', '-V'];
 const isSubcommand = process.argv.length > 2 && subcommands.includes(process.argv[2]);
 
 if (!isSubcommand) {
@@ -92,25 +92,16 @@ async function runWrapper() {
     process.exit(1);
   }
 
-  // Resolve command path if it's npx on Windows
-  let resolvedCommand = command;
-  if (isWindows && command === 'npx') {
-    // Try to find npx.cmd in npm global or local installation
-    const npmPath = process.env.npm_config_prefix || path.join(process.env.ProgramFiles || 'C:\\Program Files', 'nodejs');
-    const npxCmd = path.join(npmPath, 'npx.cmd');
-    const npxBat = path.join(npmPath, 'npx.bat');
-    
-    // Check which one exists
-    const fs = require('fs');
-    if (fs.existsSync(npxCmd)) {
-      resolvedCommand = npxCmd;
-    } else if (fs.existsSync(npxBat)) {
-      resolvedCommand = npxBat;
+  // Force shell mode for npx on Windows since npx is a batch file
+  if (isWindows && command === 'npx' && !options.shell) {
+    if (options.verbose) {
+      console.log(chalk.yellow('[reliable-mcp] Auto-enabling shell mode for npx on Windows'));
     }
+    options.shell = true;
   }
 
   const wrapper = new ProcessWrapper({
-    command: resolvedCommand,
+    command,
     args,
     label: options.label || path.basename(command),
     timeout: options.timeout,
@@ -171,6 +162,8 @@ async function runSubcommands() {
       console.log('  list [options]         List all MCP-related processes');
       console.log('  migrate [options]      Migrate Claude Desktop config to use reliable-mcp');
       console.log('  migrate-all [options]  Migrate ALL Claude configs (.claude.json, .mcp.json)');
+      console.log('  restore [options]      Restore a config file from backup');
+      console.log('  restore-all [options]  Restore ALL configs from their backups');
       break;
       
     case 'cleanup':
@@ -191,6 +184,18 @@ async function runSubcommands() {
       // Launch the comprehensive migration for all Claude configs
       const { runMigrateAll } = require('./migrate-claude-json');
       await runMigrateAll();
+      break;
+      
+    case 'restore':
+      // Restore a single config from backup
+      const { runRestore } = require('./restore-backups');
+      await runRestore();
+      break;
+      
+    case 'restore-all':
+      // Restore all configs from backups
+      const { runRestoreAll } = require('./restore-backups');
+      await runRestoreAll();
       break;
       
     default:

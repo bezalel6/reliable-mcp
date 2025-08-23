@@ -39,9 +39,11 @@ npm install -g reliable-mcp
 ✅ **Easy identification** - Shows as `reliable-mcp: [name]` in Task Manager  
 ✅ **Smart migration** - Handles all Claude config formats (.claude.json, .mcp.json, etc.)  
 ✅ **Bulk migration** - Update all configs at once with `migrate-all`  
+✅ **Undo migrations** - Restore configs from automatic backups with `restore` commands  
 ✅ **Efficient for large files** - Streaming processor for >10MB configs  
 ✅ **Cleanup utilities** - Find and kill existing zombies  
 ✅ **Project-aware** - Migrates project-level MCP servers in .claude.json  
+✅ **Windows npx support** - Automatically handles npx batch file execution on Windows  
 
 ## Commands
 
@@ -60,6 +62,12 @@ reliable-mcp migrate <path-to-config> [--dry-run] [--verbose]
 
 # Migrate ALL Claude configs automatically
 reliable-mcp migrate-all [--dry-run] [--verbose]
+
+# Restore a config from backup (undo migration)
+reliable-mcp restore <path-to-config> [--dry-run] [--force]
+
+# Restore ALL configs from backups (undo all migrations)
+reliable-mcp restore-all [--dry-run] [--force]
 ```
 
 ### Migration Commands
@@ -122,6 +130,44 @@ reliable-mcp migrate-all ./my-project --dry-run
 - `--dry-run` / `-d` - Preview changes without modifying files
 - `--verbose` / `-v` - Show detailed processing information
 - `--force` / `-f` - Skip confirmation prompts
+
+### Restore Commands
+
+#### `restore` - Restore a specific config from backup
+
+Restore a single configuration file from its most recent backup (created during migration):
+
+```bash
+# Restore a specific file
+reliable-mcp restore .claude.json
+
+# Preview what would be restored
+reliable-mcp restore .claude.json --dry-run
+
+# Restore without confirmation prompt
+reliable-mcp restore "C:\Users\name\.claude.json" --force
+```
+
+#### `restore-all` - Bulk restoration
+
+Restore ALL configuration files from their most recent backups:
+
+```bash
+# Find and restore all configs with backups
+reliable-mcp restore-all
+
+# Preview all restorations
+reliable-mcp restore-all --dry-run
+
+# Restore all without prompts
+reliable-mcp restore-all --force
+```
+
+**Important notes:**
+- Backups are created automatically during migration with timestamp (e.g., `.claude.json.backup.1703123456789`)
+- The restore commands use the most recent backup for each file
+- A safety backup is created before restoration (`.before-restore.timestamp`)
+- Multiple backups are kept, sorted by timestamp
 
 ## How It Works
 
