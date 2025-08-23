@@ -22,8 +22,11 @@ npx -y reliable-mcp -- npx -y @modelcontextprotocol/server-memory
 ## Quick Start
 
 ```bash
-# Auto-migrate your existing Claude config
-npx -y reliable-mcp migrate
+# Auto-migrate ALL your Claude configs at once
+npx -y reliable-mcp migrate-all
+
+# Or migrate a specific config file
+npx -y reliable-mcp migrate .claude.json
 
 # Or install globally
 npm install -g reliable-mcp
@@ -34,9 +37,11 @@ npm install -g reliable-mcp
 ✅ **Proper signal forwarding** - SIGTERM, SIGINT, SIGBREAK on Windows  
 ✅ **Process tree termination** - Kills entire tree, not just parent  
 ✅ **Easy identification** - Shows as `reliable-mcp: [name]` in Task Manager  
-✅ **Auto-migration** - Converts existing configs with one command  
+✅ **Smart migration** - Handles all Claude config formats (.claude.json, .mcp.json, etc.)  
+✅ **Bulk migration** - Update all configs at once with `migrate-all`  
 ✅ **Efficient for large files** - Streaming processor for >10MB configs  
 ✅ **Cleanup utilities** - Find and kill existing zombies  
+✅ **Project-aware** - Migrates project-level MCP servers in .claude.json  
 
 ## Commands
 
@@ -50,23 +55,73 @@ reliable-mcp cleanup
 # List MCP processes
 reliable-mcp list
 
-# Migrate Claude Desktop config only
-reliable-mcp migrate [--dry-run]
+# Migrate a specific config file (supports all Claude config types)
+reliable-mcp migrate <path-to-config> [--dry-run] [--verbose]
 
-# Migrate ALL Claude configs (.claude.json, .mcp.json, etc.)
+# Migrate ALL Claude configs automatically
 reliable-mcp migrate-all [--dry-run] [--verbose]
 ```
 
-### The `migrate-all` Command
+### Migration Commands
 
-This powerful command finds and migrates MCP servers across ALL Claude configuration files:
+#### `migrate` - Migrate specific config files
+
+The `migrate` command now intelligently handles all Claude configuration formats:
+
+```bash
+# Migrate a project's .claude.json (includes project-level servers)
+reliable-mcp migrate .claude.json --dry-run
+
+# Migrate a specific config with full path
+reliable-mcp migrate "C:\Users\name\.claude.json" --dry-run
+
+# Migrate Claude Desktop config
+reliable-mcp migrate claude_desktop_config.json --dry-run
+
+# Migrate an MCP-specific config
+reliable-mcp migrate .mcp.json --dry-run
+```
+
+**Supports:**
+- `.claude.json` files with project-level MCP servers
+- `.mcp.json` dedicated MCP configurations
+- `claude_desktop_config.json` Claude Desktop settings
+- Any Claude-related JSON config with MCP servers
+
+#### `migrate-all` - Comprehensive migration
+
+Finds and migrates MCP servers across ALL Claude configuration files automatically:
+
+```bash
+# Preview all changes
+reliable-mcp migrate-all --dry-run --verbose
+
+# Apply migrations to all configs
+reliable-mcp migrate-all
+
+# Search specific directory tree
+reliable-mcp migrate-all ./my-project --dry-run
+```
+
+**Searches for:**
 - `~/.claude.json` - Claude Code workspace config
 - `~/.mcp.json` - Dedicated MCP server config
 - `~/.claude/settings*.json` - Local settings
 - `%APPDATA%\Claude\*.json` - Desktop app configs
 - Project-level `.mcp.json` files
+- Any nested `.claude` directories
 
-It uses concurrent file searching and efficient parsing to handle even complex multi-project setups.
+**Migration patterns handled:**
+- `cmd /c npx` → Wrapped with reliable-mcp
+- Direct `npx` commands → Wrapped with reliable-mcp
+- `node` MCP servers → Wrapped with reliable-mcp
+- `python` MCP servers → Wrapped with reliable-mcp
+- Already wrapped servers → Skipped (no double-wrapping)
+
+**Options:**
+- `--dry-run` / `-d` - Preview changes without modifying files
+- `--verbose` / `-v` - Show detailed processing information
+- `--force` / `-f` - Skip confirmation prompts
 
 ## How It Works
 
@@ -75,7 +130,38 @@ It uses concurrent file searching and efficient parsing to handle even complex m
 3. **Proper cleanup handlers** - Registers handlers for all termination signals
 4. **Smart config migration** - Automatically wraps all MCP servers
 
+## Usage Examples
+
+### Basic wrapping
+```bash
+# Wrap an MCP server
+reliable-mcp --label my-server -- npx -y @modelcontextprotocol/server-memory
+
+# With custom timeout
+reliable-mcp --timeout 30000 -- node ./my-mcp-server.js
+
+# With verbose logging
+reliable-mcp --verbose -- python mcp_server.py
+```
+
+### Migration examples
+```bash
+# Migrate your user .claude.json
+reliable-mcp migrate ~/.claude.json
+
+# Preview changes to all configs
+reliable-mcp migrate-all --dry-run
+
+# Migrate with detailed output
+reliable-mcp migrate-all --verbose
+
+# Force migration without prompts
+reliable-mcp migrate-all --force
+```
+
 ## Example Claude Config
+
+After migration, your configs will look like this:
 
 ```json
 {
@@ -83,6 +169,23 @@ It uses concurrent file searching and efficient parsing to handle even complex m
     "memory": {
       "command": "npx",
       "args": ["-y", "reliable-mcp", "--label", "memory", "--", "npx", "-y", "@modelcontextprotocol/server-memory"]
+    }
+  }
+}
+```
+
+For `.claude.json` with project-level servers:
+
+```json
+{
+  "projects": {
+    "C:/my-project": {
+      "mcpServers": {
+        "filesystem": {
+          "command": "npx",
+          "args": ["-y", "reliable-mcp", "--label", "filesystem", "--", "npx", "-y", "@modelcontextprotocol/server-filesystem"]
+        }
+      }
     }
   }
 }

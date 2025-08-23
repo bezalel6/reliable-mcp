@@ -183,12 +183,14 @@ async function runSubcommands() {
       
     case 'migrate':
       // Launch the migrate script for Claude Desktop
-      require('./migrate-config');
+      const { runMigrate } = require('./migrate-config');
+      await runMigrate();
       break;
       
     case 'migrate-all':
       // Launch the comprehensive migration for all Claude configs
-      require('./migrate-claude-json');
+      const { runMigrateAll } = require('./migrate-claude-json');
+      await runMigrateAll();
       break;
       
     default:

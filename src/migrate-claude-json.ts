@@ -178,7 +178,7 @@ class MCPServerMigrator {
   /**
    * Process a .claude.json file
    */
-  async processClaudeJson(filePath: string): Promise<MigrationResult> {
+  public async processClaudeJson(filePath: string): Promise<MigrationResult> {
     const result: MigrationResult = {
       file: filePath,
       changes: [],
@@ -239,7 +239,7 @@ class MCPServerMigrator {
   /**
    * Process a .mcp.json file
    */
-  async processMCPJson(filePath: string): Promise<MigrationResult> {
+  public async processMCPJson(filePath: string): Promise<MigrationResult> {
     const result: MigrationResult = {
       file: filePath,
       changes: [],
@@ -352,7 +352,26 @@ class MCPServerMigrator {
   }
 }
 
-// CLI entry point
+// CLI entry point function
+export async function runMigrateAll(): Promise<void> {
+  const args = process.argv.slice(3); // Skip 'node', 'cli.js', and 'migrate-all'
+  
+  const migrator = new MCPServerMigrator({
+    dryRun: args.includes('--dry-run') || args.includes('-d'),
+    force: args.includes('--force') || args.includes('-f'),
+    verbose: args.includes('--verbose') || args.includes('-v'),
+    pattern: args.find(arg => !arg.startsWith('-'))
+  });
+
+  try {
+    await migrator.run();
+  } catch (error: any) {
+    console.error(chalk.red(`\n❌ Migration failed: ${error.message}`));
+    process.exit(1);
+  }
+}
+
+// Run if called directly as a script
 if (require.main === module) {
   const args = process.argv.slice(2);
   

@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import chalk from 'chalk';
+import { MCPServerMigrator } from './migrate-claude-json';
 
 interface MCPServer {
   command: string;
@@ -121,11 +122,15 @@ function transformConfig(config: ClaudeConfig): { config: ClaudeConfig; changes:
 async function main() {
   console.log(chalk.cyan('🔄 MCP Configuration Migration Tool\n'));
   
-  // Parse arguments
-  const args = process.argv.slice(2);
+  // Parse arguments - need to skip 'migrate' command if it's there
+  let args = process.argv.slice(2);
+  if (args[0] === 'migrate') {
+    args = args.slice(1); // Skip the 'migrate' command itself
+  }
   const configPath = args[0] || await findConfigFile();
   const dryRun = args.includes('--dry-run') || args.includes('-d');
   const force = args.includes('--force') || args.includes('-f');
+  const verbose = args.includes('--verbose') || args.includes('-v');
   
   // Check file size and delegate to streaming version if needed
   if (configPath && fs.existsSync(configPath)) {
@@ -141,8 +146,11 @@ async function main() {
   
   if (!configPath) {
     console.error(chalk.red('❌ No Claude configuration file found!'));
-    console.error(chalk.yellow('\nPlease specify the path to your claude_desktop_config.json:'));
+    console.error(chalk.yellow('\nPlease specify the path to your configuration file:'));
     console.error(chalk.gray('  npx reliable-mcp migrate <path-to-config>'));
+    console.error(chalk.gray('  Examples:'));
+    console.error(chalk.gray('    npx reliable-mcp migrate .claude.json'));
+    console.error(chalk.gray('    npx reliable-mcp migrate claude_desktop_config.json'));
     process.exit(1);
   }
 
@@ -152,6 +160,43 @@ async function main() {
   }
 
   console.log(chalk.cyan(`📁 Config file: ${configPath}\n`));
+  
+  // Check if it's a .claude.json or .mcp.json file
+  const fileName = path.basename(configPath);
+  if (fileName === '.claude.json' || fileName === '.mcp.json' || configPath.includes('.claude') || configPath.includes('.mcp')) {
+    // Use the more comprehensive migrator for these file types
+    const migrator = new MCPServerMigrator({ dryRun, force, verbose });
+    
+    let result;
+    if (fileName === '.mcp.json' || configPath.includes('.mcp')) {
+      result = await migrator.processMCPJson(configPath);
+    } else {
+      result = await migrator.processClaudeJson(configPath);
+    }
+    
+    // Display results
+    if (result.error) {
+      console.error(chalk.red(`❌ Error: ${result.error}`));
+      process.exit(1);
+    } else if (result.changes.length > 0) {
+      console.log(chalk.yellow(`📝 Changes to be made:\n`));
+      result.changes.forEach(change => {
+        console.log(chalk.green(`  ✓ ${change}`));
+      });
+      console.log();
+      
+      if (dryRun) {
+        console.log(chalk.cyan('🔍 Dry run mode - no changes were made'));
+        console.log(chalk.gray('Remove --dry-run to apply changes'));
+      } else if (result.backed_up) {
+        console.log(chalk.green('✅ Configuration migrated successfully!'));
+        console.log(chalk.yellow('⚠️  Please restart Claude for changes to take effect'));
+      }
+    } else {
+      console.log(chalk.green('✨ No changes needed - config is already optimized!'));
+    }
+    return;
+  }
 
   // Read config
   let config: ClaudeConfig;
@@ -226,6 +271,14 @@ async function main() {
     console.log(chalk.green('✅ Original configuration restored'));
     process.exit(1);
   }
+}
+
+// Export main function for CLI
+export async function runMigrate(): Promise<void> {
+  return main().catch(error => {
+    console.error(chalk.red(`\n❌ Unexpected error: ${error.message}`));
+    process.exit(1);
+  });
 }
 
 // Run if called directly
