@@ -1,0 +1,27 @@
+{
+  "mcpServers": {
+    "memory": {
+      "command": "cmd",
+      "args": ["/c", "npx", "@modelcontextprotocol/server-memory"]
+    },
+    "filesystem": {
+      "command": "cmd",
+      "args": ["/c", "npx", "@modelcontextprotocol/server-filesystem", "C:\\Users\\test"]
+    },
+    "github": {
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_TOKEN": "your-token"
+      }
+    },
+    "puppeteer": {
+      "command": "cmd.exe",
+      "args": ["/d", "/s", "/c", "mcp-server-puppeteer"]
+    },
+    "custom": {
+      "command": "node",
+      "args": ["./my-mcp-server.js"]
+    }
+  }
+}

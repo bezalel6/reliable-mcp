@@ -1,0 +1,14 @@
+src/
+*.test.ts
+*.spec.ts
+tsconfig.json
+jest.config.js
+.gitignore
+.git/
+node_modules/
+coverage/
+.nyc_output/
+*.log
+.env
+.vscode/
+.idea/
