@@ -50,9 +50,23 @@ reliable-mcp cleanup
 # List MCP processes
 reliable-mcp list
 
-# Migrate Claude config
+# Migrate Claude Desktop config only
 reliable-mcp migrate [--dry-run]
+
+# Migrate ALL Claude configs (.claude.json, .mcp.json, etc.)
+reliable-mcp migrate-all [--dry-run] [--verbose]
 ```
+
+### The `migrate-all` Command
+
+This powerful command finds and migrates MCP servers across ALL Claude configuration files:
+- `~/.claude.json` - Claude Code workspace config
+- `~/.mcp.json` - Dedicated MCP server config
+- `~/.claude/settings*.json` - Local settings
+- `%APPDATA%\Claude\*.json` - Desktop app configs
+- Project-level `.mcp.json` files
+
+It uses concurrent file searching and efficient parsing to handle even complex multi-project setups.
 
 ## How It Works
 

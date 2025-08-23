@@ -9,7 +9,7 @@ import * as path from 'path';
 const isWindows = os.platform() === 'win32';
 
 // Check if this is a subcommand
-const subcommands = ['cleanup', 'list', 'migrate', 'help', '--help', '-h', '--version', '-V'];
+const subcommands = ['cleanup', 'list', 'migrate', 'migrate-all', 'help', '--help', '-h', '--version', '-V'];
 const isSubcommand = process.argv.length > 2 && subcommands.includes(process.argv[2]);
 
 if (!isSubcommand) {
@@ -169,7 +169,8 @@ async function runSubcommands() {
       console.log('\nCommands:');
       console.log('  cleanup [options]      Find and kill orphaned MCP server processes');
       console.log('  list [options]         List all MCP-related processes');
-      console.log('  migrate [options]      Migrate Claude config to use reliable-mcp');
+      console.log('  migrate [options]      Migrate Claude Desktop config to use reliable-mcp');
+      console.log('  migrate-all [options]  Migrate ALL Claude configs (.claude.json, .mcp.json)');
       break;
       
     case 'cleanup':
@@ -181,8 +182,13 @@ async function runSubcommands() {
       break;
       
     case 'migrate':
-      // Launch the migrate script
+      // Launch the migrate script for Claude Desktop
       require('./migrate-config');
+      break;
+      
+    case 'migrate-all':
+      // Launch the comprehensive migration for all Claude configs
+      require('./migrate-claude-json');
       break;
       
     default:
