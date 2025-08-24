@@ -15,21 +15,27 @@ MCP servers spawned via `cmd.exe` become orphaned when Claude Code closes, leadi
 # Instead of this (creates zombies):
 cmd /c npx @modelcontextprotocol/server-memory
 
-# Use this:
+# Use this (with global install - no Claude warnings!):
+reliable-mcp -- npx -y @modelcontextprotocol/server-memory
+
+# Or without installing:
 npx -y reliable-mcp -- npx -y @modelcontextprotocol/server-memory
 ```
 
 ## Quick Start
 
 ```bash
+# Install globally (recommended - avoids Claude Code warnings!)
+npm install -g reliable-mcp
+
 # Auto-migrate ALL your Claude configs at once
-npx -y reliable-mcp migrate-all
+reliable-mcp migrate-all
 
 # Or migrate a specific config file
-npx -y reliable-mcp migrate .claude.json
+reliable-mcp migrate .claude.json
 
-# Or install globally
-npm install -g reliable-mcp
+# Or use without installing
+npx -y reliable-mcp migrate-all
 ```
 
 ## Features
@@ -44,6 +50,7 @@ npm install -g reliable-mcp
 ✅ **Cleanup utilities** - Find and kill existing zombies  
 ✅ **Project-aware** - Migrates project-level MCP servers in .claude.json  
 ✅ **Windows npx support** - Automatically handles npx batch file execution on Windows  
+✅ **No Claude warnings** - Global install eliminates "invalid configuration" warnings  
 
 ## Commands
 
@@ -207,20 +214,22 @@ reliable-mcp migrate-all --force
 
 ## Example Claude Config
 
-After migration, your configs will look like this:
+After migration with global install, your configs will look like this:
 
 ```json
 {
   "mcpServers": {
     "memory": {
-      "command": "npx",
-      "args": ["-y", "reliable-mcp", "--label", "memory", "--", "npx", "-y", "@modelcontextprotocol/server-memory"]
+      "command": "reliable-mcp",
+      "args": ["--label", "memory", "--", "npx", "-y", "@modelcontextprotocol/server-memory"]
     }
   }
 }
 ```
 
-For `.claude.json` with project-level servers:
+**Note:** When `reliable-mcp` is installed globally, the migrator uses it directly without `npx`, eliminating Claude Code's "invalid configuration" warnings about npx commands.
+
+For `.claude.json` with project-level servers (with global install):
 
 ```json
 {
@@ -228,8 +237,8 @@ For `.claude.json` with project-level servers:
     "C:/my-project": {
       "mcpServers": {
         "filesystem": {
-          "command": "npx",
-          "args": ["-y", "reliable-mcp", "--label", "filesystem", "--", "npx", "-y", "@modelcontextprotocol/server-filesystem"]
+          "command": "reliable-mcp",
+          "args": ["--label", "filesystem", "--", "npx", "-y", "@modelcontextprotocol/server-filesystem"]
         }
       }
     }

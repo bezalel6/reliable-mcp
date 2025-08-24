@@ -38,6 +38,18 @@ function transformConfig(config: ClaudeConfig): { config: ClaudeConfig; changes:
     return { config, changes };
   }
 
+  // Check if reliable-mcp is installed globally
+  let isGloballyInstalled = false;
+  try {
+    const { execSync } = require('child_process');
+    const isWindows = process.platform === 'win32';
+    const checkCommand = isWindows ? 'where reliable-mcp 2>nul' : 'which reliable-mcp 2>/dev/null';
+    execSync(checkCommand, { encoding: 'utf8' });
+    isGloballyInstalled = true;
+  } catch {
+    isGloballyInstalled = false;
+  }
+
   for (const [serverName, serverConfig] of Object.entries(config.mcpServers)) {
     let modified = false;
     
@@ -45,19 +57,33 @@ function transformConfig(config: ClaudeConfig): { config: ClaudeConfig; changes:
     if (serverConfig.command === 'cmd' && serverConfig.args?.[0] === '/c' && serverConfig.args?.[1] === 'npx') {
       // Filter out existing -y flags to avoid duplication
       const npxArgs = serverConfig.args.slice(2).filter(arg => arg !== '-y');
-      serverConfig.command = 'npx';
-      serverConfig.args = [
-        '-y',
-        'reliable-mcp',
-        '--label',
-        serverName,
-        '--',
-        'npx',
-        '-y',
-        ...npxArgs
-      ];
-      modified = true;
-      changes.push(`${serverName}: Converted 'cmd /c npx' to 'npx -y reliable-mcp'`);
+      if (isGloballyInstalled) {
+        serverConfig.command = 'reliable-mcp';
+        serverConfig.args = [
+          '--label',
+          serverName,
+          '--',
+          'npx',
+          '-y',
+          ...npxArgs
+        ];
+        modified = true;
+        changes.push(`${serverName}: Converted 'cmd /c npx' to 'reliable-mcp'`);
+      } else {
+        serverConfig.command = 'npx';
+        serverConfig.args = [
+          '-y',
+          'reliable-mcp',
+          '--label',
+          serverName,
+          '--',
+          'npx',
+          '-y',
+          ...npxArgs
+        ];
+        modified = true;
+        changes.push(`${serverName}: Converted 'cmd /c npx' to 'npx -y reliable-mcp'`);
+      }
     }
     // Pattern 2: cmd.exe /d /s /c <command>
     else if ((serverConfig.command === 'cmd' || serverConfig.command === 'cmd.exe') && 
@@ -67,17 +93,29 @@ function transformConfig(config: ClaudeConfig): { config: ClaudeConfig; changes:
       
       // Check if it's running an MCP server
       if (commandArgs.some(arg => arg.includes('mcp') || arg.includes('modelcontextprotocol'))) {
-        serverConfig.command = 'npx';
-        serverConfig.args = [
-          '-y',
-          'reliable-mcp',
-          '--label',
-          serverName,
-          '--',
-          ...commandArgs
-        ];
-        modified = true;
-        changes.push(`${serverName}: Converted 'cmd /c ${commandArgs[0]}' to 'npx -y reliable-mcp'`);
+        if (isGloballyInstalled) {
+          serverConfig.command = 'reliable-mcp';
+          serverConfig.args = [
+            '--label',
+            serverName,
+            '--',
+            ...commandArgs
+          ];
+          modified = true;
+          changes.push(`${serverName}: Converted 'cmd /c ${commandArgs[0]}' to 'reliable-mcp'`);
+        } else {
+          serverConfig.command = 'npx';
+          serverConfig.args = [
+            '-y',
+            'reliable-mcp',
+            '--label',
+            serverName,
+            '--',
+            ...commandArgs
+          ];
+          modified = true;
+          changes.push(`${serverName}: Converted 'cmd /c ${commandArgs[0]}' to 'npx -y reliable-mcp'`);
+        }
       }
     }
     // Pattern 3: Direct npx without reliable-mcp
@@ -85,35 +123,62 @@ function transformConfig(config: ClaudeConfig): { config: ClaudeConfig; changes:
              !serverConfig.args?.includes('reliable-mcp') &&
              serverConfig.args?.some(arg => arg.includes('mcp') || arg.includes('modelcontextprotocol'))) {
       const originalArgs = serverConfig.args || [];
-      serverConfig.args = [
-        '-y',
-        'reliable-mcp',
-        '--label',
-        serverName,
-        '--',
-        'npx',
-        '-y',
-        ...originalArgs.filter(arg => arg !== '-y') // Remove existing -y if present
-      ];
-      modified = true;
-      changes.push(`${serverName}: Wrapped 'npx' with 'reliable-mcp'`);
+      if (isGloballyInstalled) {
+        serverConfig.command = 'reliable-mcp';
+        serverConfig.args = [
+          '--label',
+          serverName,
+          '--',
+          'npx',
+          '-y',
+          ...originalArgs.filter(arg => arg !== '-y') // Remove existing -y if present
+        ];
+        modified = true;
+        changes.push(`${serverName}: Wrapped 'npx' with 'reliable-mcp'`);
+      } else {
+        serverConfig.args = [
+          '-y',
+          'reliable-mcp',
+          '--label',
+          serverName,
+          '--',
+          'npx',
+          '-y',
+          ...originalArgs.filter(arg => arg !== '-y') // Remove existing -y if present
+        ];
+        modified = true;
+        changes.push(`${serverName}: Wrapped 'npx' with 'reliable-mcp'`);
+      }
     }
     // Pattern 4: node with MCP servers
     else if (serverConfig.command === 'node' && 
              serverConfig.args?.[0]?.includes('mcp')) {
       const originalArgs = serverConfig.args || [];
-      serverConfig.command = 'npx';
-      serverConfig.args = [
-        '-y',
-        'reliable-mcp',
-        '--label',
-        serverName,
-        '--',
-        'node',
-        ...originalArgs
-      ];
-      modified = true;
-      changes.push(`${serverName}: Wrapped 'node' command with 'reliable-mcp'`);
+      if (isGloballyInstalled) {
+        serverConfig.command = 'reliable-mcp';
+        serverConfig.args = [
+          '--label',
+          serverName,
+          '--',
+          'node',
+          ...originalArgs
+        ];
+        modified = true;
+        changes.push(`${serverName}: Wrapped 'node' command with 'reliable-mcp'`);
+      } else {
+        serverConfig.command = 'npx';
+        serverConfig.args = [
+          '-y',
+          'reliable-mcp',
+          '--label',
+          serverName,
+          '--',
+          'node',
+          ...originalArgs
+        ];
+        modified = true;
+        changes.push(`${serverName}: Wrapped 'node' command with 'reliable-mcp'`);
+      }
     }
   }
 

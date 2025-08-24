@@ -47,6 +47,7 @@ interface MigrationResult {
 class MCPServerMigrator {
   private results: MigrationResult[] = [];
   private processedServers = 0;
+  private isGloballyInstalled: boolean = false;
   private options: {
     dryRun: boolean;
     force: boolean;
@@ -61,6 +62,23 @@ class MCPServerMigrator {
       verbose: options.verbose || false,
       pattern: options.pattern
     };
+    
+    // Check if reliable-mcp is installed globally
+    try {
+      const { execSync } = require('child_process');
+      const isWindows = process.platform === 'win32';
+      const checkCommand = isWindows ? 'where reliable-mcp 2>nul' : 'which reliable-mcp 2>/dev/null';
+      execSync(checkCommand, { encoding: 'utf8' });
+      this.isGloballyInstalled = true;
+      if (this.options.verbose) {
+        console.log(chalk.green('✓ Detected global reliable-mcp installation'));
+      }
+    } catch {
+      this.isGloballyInstalled = false;
+      if (this.options.verbose) {
+        console.log(chalk.yellow('⚠ Global reliable-mcp not found, will use npx'));
+      }
+    }
   }
 
   /**
@@ -134,15 +152,29 @@ class MCPServerMigrator {
         if (commandArgs[0] === 'npx') {
           // Filter out existing -y flags to avoid duplication
           const npxArgs = commandArgs.slice(1).filter(arg => arg !== '-y');
-          newServer.command = 'npx';
-          newServer.args = ['-y', 'reliable-mcp', '--label', name, '--', 'npx', '-y', ...npxArgs];
-          changed = true;
-          description = `Converted cmd /c npx to reliable-mcp wrapper`;
+          if (this.isGloballyInstalled) {
+            newServer.command = 'reliable-mcp';
+            newServer.args = ['--label', name, '--', 'npx', '-y', ...npxArgs];
+            changed = true;
+            description = `Converted cmd /c npx to global reliable-mcp wrapper`;
+          } else {
+            newServer.command = 'npx';
+            newServer.args = ['-y', 'reliable-mcp', '--label', name, '--', 'npx', '-y', ...npxArgs];
+            changed = true;
+            description = `Converted cmd /c npx to npx reliable-mcp wrapper`;
+          }
         } else {
-          newServer.command = 'npx';
-          newServer.args = ['-y', 'reliable-mcp', '--label', name, '--', ...commandArgs];
-          changed = true;
-          description = `Converted cmd /c to reliable-mcp wrapper`;
+          if (this.isGloballyInstalled) {
+            newServer.command = 'reliable-mcp';
+            newServer.args = ['--label', name, '--', ...commandArgs];
+            changed = true;
+            description = `Converted cmd /c to global reliable-mcp wrapper`;
+          } else {
+            newServer.command = 'npx';
+            newServer.args = ['-y', 'reliable-mcp', '--label', name, '--', ...commandArgs];
+            changed = true;
+            description = `Converted cmd /c to npx reliable-mcp wrapper`;
+          }
         }
       }
     }
@@ -150,27 +182,48 @@ class MCPServerMigrator {
     else if (server.command === 'npx' && !server.args?.includes('reliable-mcp')) {
       if (server.args?.some(arg => arg.includes('mcp') || arg.includes('modelcontextprotocol'))) {
         const originalArgs = server.args || [];
-        newServer.args = ['-y', 'reliable-mcp', '--label', name, '--', 'npx', '-y', ...originalArgs.filter(arg => arg !== '-y')];
-        changed = true;
-        description = `Wrapped npx command with reliable-mcp`;
+        if (this.isGloballyInstalled) {
+          newServer.command = 'reliable-mcp';
+          newServer.args = ['--label', name, '--', 'npx', '-y', ...originalArgs.filter(arg => arg !== '-y')];
+          changed = true;
+          description = `Wrapped npx command with global reliable-mcp`;
+        } else {
+          newServer.args = ['-y', 'reliable-mcp', '--label', name, '--', 'npx', '-y', ...originalArgs.filter(arg => arg !== '-y')];
+          changed = true;
+          description = `Wrapped npx command with npx reliable-mcp`;
+        }
       }
     }
     // Pattern 3: Node executing MCP servers
     else if (server.command === 'node' || server.command?.endsWith('node.exe')) {
       if (server.args?.[0]?.includes('mcp')) {
-        newServer.command = 'npx';
-        newServer.args = ['-y', 'reliable-mcp', '--label', name, '--', server.command, ...(server.args || [])];
-        changed = true;
-        description = `Wrapped node MCP server with reliable-mcp`;
+        if (this.isGloballyInstalled) {
+          newServer.command = 'reliable-mcp';
+          newServer.args = ['--label', name, '--', server.command, ...(server.args || [])];
+          changed = true;
+          description = `Wrapped node MCP server with global reliable-mcp`;
+        } else {
+          newServer.command = 'npx';
+          newServer.args = ['-y', 'reliable-mcp', '--label', name, '--', server.command, ...(server.args || [])];
+          changed = true;
+          description = `Wrapped node MCP server with npx reliable-mcp`;
+        }
       }
     }
     // Pattern 4: Python MCP servers
     else if (server.command === 'python' || server.command?.includes('python')) {
       if (server.args?.some(arg => arg.includes('mcp'))) {
-        newServer.command = 'npx';
-        newServer.args = ['-y', 'reliable-mcp', '--label', name, '--', server.command, ...(server.args || [])];
-        changed = true;
-        description = `Wrapped Python MCP server with reliable-mcp`;
+        if (this.isGloballyInstalled) {
+          newServer.command = 'reliable-mcp';
+          newServer.args = ['--label', name, '--', server.command, ...(server.args || [])];
+          changed = true;
+          description = `Wrapped Python MCP server with global reliable-mcp`;
+        } else {
+          newServer.command = 'npx';
+          newServer.args = ['-y', 'reliable-mcp', '--label', name, '--', server.command, ...(server.args || [])];
+          changed = true;
+          description = `Wrapped Python MCP server with npx reliable-mcp`;
+        }
       }
     }
 

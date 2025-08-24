@@ -1,6 +1,6 @@
 {
   "name": "reliable-mcp",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "description": "A reliable process wrapper for MCP servers on Windows that properly handles process termination and signal forwarding",
   "main": "dist/index.js",
   "bin": {
