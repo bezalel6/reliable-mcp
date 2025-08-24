@@ -226,6 +226,23 @@ class MCPServerMigrator {
         }
       }
     }
+    // Pattern 5: Self-healing - Update outdated npx reliable-mcp to direct command
+    else if (this.isGloballyInstalled && server.command === 'npx' && server.args?.includes('reliable-mcp')) {
+      // Extract everything after 'reliable-mcp' in the args
+      const rmcpIndex = server.args.indexOf('reliable-mcp');
+      const argsAfterRmcp = server.args.slice(rmcpIndex + 1);
+      
+      // Remove -y flag if it was before reliable-mcp
+      const yIndex = server.args.indexOf('-y');
+      if (yIndex !== -1 && yIndex < rmcpIndex) {
+        // Already handled by slicing from rmcpIndex
+      }
+      
+      newServer.command = 'reliable-mcp';
+      newServer.args = argsAfterRmcp;
+      changed = true;
+      description = `Updated outdated npx wrapper to direct reliable-mcp command`;
+    }
 
     return { server: newServer, changed, description };
   }

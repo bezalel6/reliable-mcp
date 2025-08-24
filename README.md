@@ -51,6 +51,7 @@ npx -y reliable-mcp migrate-all
 ✅ **Project-aware** - Migrates project-level MCP servers in .claude.json  
 ✅ **Windows npx support** - Automatically handles npx batch file execution on Windows  
 ✅ **No Claude warnings** - Global install eliminates "invalid configuration" warnings  
+✅ **Self-healing migrations** - Automatically updates outdated patterns to optimal configuration  
 
 ## Commands
 
@@ -131,6 +132,7 @@ reliable-mcp migrate-all ./my-project --dry-run
 - Direct `npx` commands → Wrapped with reliable-mcp
 - `node` MCP servers → Wrapped with reliable-mcp
 - `python` MCP servers → Wrapped with reliable-mcp
+- **Self-healing**: `npx -y reliable-mcp` → Direct `reliable-mcp` command (when globally installed)
 - Already wrapped servers → Skipped (no double-wrapping)
 
 **Options:**
@@ -182,6 +184,18 @@ reliable-mcp restore-all --force
 2. **Windows-aware** - Uses `tree-kill` and WMI for reliable termination
 3. **Proper cleanup handlers** - Registers handlers for all termination signals
 4. **Smart config migration** - Automatically wraps all MCP servers
+5. **Self-healing** - Detects and fixes outdated migration patterns
+
+### Self-Healing Migrations
+
+The migrator now includes intelligent codemod functionality that automatically updates previously migrated configurations to use the optimal pattern. When `reliable-mcp` is globally installed, it will:
+
+- Detect configs using `npx -y reliable-mcp` (outdated pattern)
+- Convert them to use `reliable-mcp` directly (optimal pattern)
+- Eliminate Claude Code's "invalid configuration" warnings
+- No need to restore from backups - the migrator fixes configs in-place
+
+This means you can run `migrate-all` at any time to update ALL your configs to the current best practice.
 
 ## Usage Examples
 

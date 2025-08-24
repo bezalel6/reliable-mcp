@@ -180,6 +180,18 @@ function transformConfig(config: ClaudeConfig): { config: ClaudeConfig; changes:
         changes.push(`${serverName}: Wrapped 'node' command with 'reliable-mcp'`);
       }
     }
+    // Pattern 5: Self-healing - Update outdated npx reliable-mcp to direct command
+    else if (isGloballyInstalled && serverConfig.command === 'npx' && 
+             serverConfig.args?.includes('reliable-mcp')) {
+      // Extract everything after 'reliable-mcp' in the args
+      const rmcpIndex = serverConfig.args.indexOf('reliable-mcp');
+      const argsAfterRmcp = serverConfig.args.slice(rmcpIndex + 1);
+      
+      serverConfig.command = 'reliable-mcp';
+      serverConfig.args = argsAfterRmcp;
+      modified = true;
+      changes.push(`${serverName}: Updated from 'npx reliable-mcp' to direct command`);
+    }
   }
 
   return { config, changes };
